@@ -1,8 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using NUnit.Framework;
-using UnityEngine;
-using UnityEngine.TestTools;
+﻿using NUnit.Framework;
+using Assert = NUnit.Framework.Assert;
 
 namespace Tests
 {
@@ -36,12 +33,24 @@ namespace Tests
         [TestCase(new [] {1, 2, 1, 1, 1, 1, 1, 1}, 1, 5, 2, 7)]
         [TestCase(new [] {1, 1, 1, 1, 1, 1, 2, 1}, 1, 5, 7, 7)]
         [TestCase(new [] {1, 1, 1, 1, 1, 1, 1, 2}, 1, 5, 0, 7)]
+        [TestCase(new [] {1, 3, 1, 1, 1, 1, 1, 2}, 1, 5, 2, 5)]
         public void TestTryGetRowOfDigits(int[] arr, int searchValue, int countForRow, int expectedStartIndex, int expectedCount)
         {
             var list = InitList(arr);
             Assert.True(list.TryGetRowOfDigits(searchValue, countForRow, out var startIndex, out var count));
             Assert.True(startIndex == expectedStartIndex, $"startIndex = {startIndex}, expectedStartIndex = {expectedStartIndex}");
             Assert.True(count == expectedCount, $"count = {count}, expectedCount = {expectedCount}");
+        }
+
+        [TestCase(new [] {1, 3, 1, 1, 1, 1, 1, 2}, 1, 5, new [] {1,3,10,2})]
+        [TestCase(new [] {1, 1, 1, 2, 2, 1, 1, 1}, 1, 5, new [] {10,2,2})]
+        public void TestScenario(int[] arr, int searchValue, int countForRow, int[] expectedArr)
+        {
+            var list = InitList(arr);
+            Assert.True(list.TryGetRowOfDigits(searchValue, countForRow, out var startIndex, out var count));
+            list.RemoveAt(startIndex, count);
+            list.AddAt(startIndex, 10);
+            CheckList(list, expectedArr);
         }
 
         private static void CheckList(CircleList list, int[] expected)
