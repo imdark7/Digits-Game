@@ -1,18 +1,25 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 public class Circle : MonoBehaviour
 {
     public int digit;
+    public float step;
     internal Vector3 targetPosition = new Vector3(0, 0, 1);
+    internal bool IsMoving = false;
+    private float progress;
 
-    private void Update()
+    private void FixedUpdate()
     {
         if (targetPosition != transform.position)
         {
+            IsMoving = true;
             Move();
+        }
+        else
+        {
+            IsMoving = false;
         }
     }
 
@@ -38,7 +45,8 @@ public class Circle : MonoBehaviour
 
     private void Move()
     {
-        transform.position = Vector3.Lerp(transform.position, targetPosition, 8f * Time.deltaTime);
+        transform.position = Vector3.Lerp(transform.position, targetPosition, progress);
+        progress += step;
     }
 
     public Circle Init(int value = default)

@@ -302,6 +302,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   digit: 0
+  step: 0.001
 --- !u!58 &-6982832070821128526
 CircleCollider2D:
   m_ObjectHideFlags: 0

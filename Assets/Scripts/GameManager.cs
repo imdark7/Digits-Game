@@ -13,30 +13,31 @@ public class GameManager : MonoBehaviour
     public static int DigitCap = 10;
     public static int StartCount = 8;
     public static int CountForRow = 5;
-    public float radius = 5.0f;
-    private Vector3 center;
     private Circle nextCircle;
     private Vector3 targetNextCircleDirection;
-    [SerializeField] private GameState gameState = GameState.Init;
     private int insertedIndex;
+
 
     private void Start()
     {
-        center = transform.position;
+        list.NeedCheckSumEvent.AddListener(CollapseSum);
+        list.NeedCheckRowSumEvent.AddListener(CollapseRow);
+        CircleList.Center = transform.position;
         StartCoroutine(PlaceStartCircles());
-        gameState = GameState.WaitPlayersTurn;
     }
 
     private IEnumerator PlaceStartCircles()
     {
+        var startDigits = new[] {6, 6, 6, 5, 6, 7, 8, 9};
         for (var i = 0; i < StartCount; i++)
         {
-            var circle = CreateCircle();
-            list.AddAt(i, circle);
-            var pos = GetCirclePosition(center, radius, GetAngleOfElement(i, StartCount));
+            var circle = CreateCircle(startDigits[i]);
+            list.AddAt(circle, i, false);
+            var pos = CircleList.GetCirclePosition(i, StartCount);
             yield return StartCoroutine(circle.MoveCoroutine(pos));
         }
 
+        list.RenderList();
         nextCircle = CreateCircle();
     }
 
@@ -45,12 +46,13 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
-        #region WaitPlayersTurn
-
-        if (gameState == GameState.WaitPlayersTurn)
+        if (list.IsMoving)
         {
-            if (nextCircle is null) return;
+            return;
+        }
 
+        if (nextCircle != null)
+        {
             if (Input.GetMouseButtonDown(0) || Input.GetMouseButton(0))
             {
                 var mousePosition = Input.mousePosition;
@@ -64,7 +66,8 @@ public class GameManager : MonoBehaviour
             if (Input.GetMouseButtonUp(0))
             {
                 InsertIntoList(nextCircle, targetNextCircleDirection);
-                nextCircle = CreateCircle();
+                nextCircle = null;
+                return;
             }
 
             if (Input.touches.Any())
@@ -81,79 +84,44 @@ public class GameManager : MonoBehaviour
                 else if (touch.phase == TouchPhase.Ended)
                 {
                     InsertIntoList(nextCircle, targetNextCircleDirection);
-                    nextCircle = CreateCircle();
+                    nextCircle = null;
+                    return;
                 }
             }
         }
 
-        #endregion
-
-        #region PlaceCircle
-
-        if (gameState == GameState.PlaceCircle)
+        if (nextCircle is null)
         {
-            RenderList();
-
-            if (list.InnerList.All(x => x.transform.position == x.targetPosition))
-            {
-                gameState = GameState.Collapse;
-            }
+            nextCircle = CreateCircle();
         }
-
-        #endregion
-
-        #region Collapse
-
-        if (gameState == GameState.Collapse)
-        {
-            CollapseSum();
-        }
-
-        #endregion
-
-        #region CollapseRow
-
-        if (gameState == GameState.CollapseRow)
-        {
-            CollapseRow();
-        }
-
-        #endregion
-
-        #region CollapseRow
-
-        if (gameState == GameState.CheckLose)
-        {
-            CheckDeath();
-        }
-
-        #endregion
-    }
-
-    private void CheckDeath()
-    {
-        if (list.Count >= 20)
-        {
-            gameState = GameState.GameOver;
-        }
-
-        gameState = GameState.WaitPlayersTurn;
     }
 
     private void CollapseRow()
     {
         if (list.TryGetRowOfDigits(DigitCap, CountForRow, out var startIndex, out var count))
         {
-            for (var i = 0; i < count; i++)
+            var indexesForDestroy =
+                GetIndexesForDestroy(startIndex, count)
+                    .OrderByDescending(i => i);
+            foreach (var i in indexesForDestroy)
             {
                 Destroy(list.InnerList[i].gameObject);
             }
 
             list.RemoveAt(startIndex, count);
-            RenderList();
+        }
+    }
+
+    private IEnumerable<int> GetIndexesForDestroy(int startIndex, int count)
+    {
+        var indexes = new int[count];
+        for (var i = 0; i < count; i++)
+        {
+            indexes[i] = startIndex;
+            startIndex = startIndex >= list.Count - 1 ? 0 : startIndex + 1;
         }
 
-        gameState = GameState.CheckLose;
+        return indexes;
     }
 
     private void InsertIntoList(Circle circle, Vector3 direction)
@@ -166,29 +134,10 @@ public class GameManager : MonoBehaviour
         }
 
         var index = (int) (vectorAngle / sectorAngle) + 1;
-        list.AddAt(index, circle);
         insertedIndex = index;
-        gameState = GameState.PlaceCircle;
+        list.AddAt(circle, index);
     }
 
-    private void RenderList()
-    {
-        for (var i = 0; i < list.Count; i++)
-        {
-            list.InnerList[i].Move(GetCirclePosition(center, radius, GetAngleOfElement(i, list.Count)));
-        }
-    }
-
-    private static float GetAngleOfElement(int i, int elementsCount) => i * 360f / elementsCount;
-
-    private static Vector3 GetCirclePosition(Vector3 center, float radius, float ang)
-    {
-        Vector3 pos;
-        pos.x = center.x + radius * Mathf.Sin(ang * Mathf.Deg2Rad);
-        pos.y = center.y + radius * Mathf.Cos(ang * Mathf.Deg2Rad);
-        pos.z = center.z;
-        return pos;
-    }
 
     private void CollapseSum()
     {
@@ -202,6 +151,7 @@ public class GameManager : MonoBehaviour
 
             if (list.InnerList[index].digit == DigitCap)
             {
+                sum = 0;
                 indexList.Clear();
                 continue;
             }
@@ -219,7 +169,6 @@ public class GameManager : MonoBehaviour
 
                 if (sum == DigitCap)
                 {
-                    gameState = GameState.CollapseRow;
                     Collapse(indexList);
                     return;
                 }
@@ -228,35 +177,20 @@ public class GameManager : MonoBehaviour
                 index = GetNextIndex(index);
             }
         }
-
-        gameState = GameState.CollapseRow;
     }
 
     private void Collapse(IEnumerable<int> indexes)
     {
         var indexArray = indexes.ToArray();
-        var min = indexArray.Min();
         var positionToCreate = list.InnerList[insertedIndex].transform.position;
-        foreach (var i in indexArray)
+        foreach (var i in indexArray.OrderByDescending(i => i))
         {
             Destroy(list.InnerList[i].gameObject);
         }
 
-        list.RemoveAt(min, indexArray.Length);
-        list.AddAt(min, CreateCircle(DigitCap, positionToCreate));
-        RenderList();
+        
+        list.Replace(indexArray, CreateCircle(DigitCap, positionToCreate));
     }
 
     private int GetNextIndex(int i) => i == list.Count - 1 ? 0 : i + 1;
-
-    private enum GameState
-    {
-        Init,
-        WaitPlayersTurn,
-        PlaceCircle,
-        Collapse,
-        CollapseRow,
-        CheckLose,
-        GameOver
-    }
 }

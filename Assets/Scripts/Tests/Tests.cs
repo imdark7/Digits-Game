@@ -1,4 +1,6 @@
-﻿using NUnit.Framework;
+﻿using System;
+using System.Collections.Generic;
+using NUnit.Framework;
 using Assert = NUnit.Framework.Assert;
 
 namespace Tests
@@ -28,22 +30,24 @@ namespace Tests
             CheckList(list, expected);
         }
 
-        [TestCase(new [] {1, 1, 1, 1, 1}, 1, 5, 0, 5)]
-        [TestCase(new [] {2, 1, 1, 1, 1, 1, 1, 1}, 1, 5, 1, 7)]
-        [TestCase(new [] {1, 2, 1, 1, 1, 1, 1, 1}, 1, 5, 2, 7)]
-        [TestCase(new [] {1, 1, 1, 1, 1, 1, 2, 1}, 1, 5, 7, 7)]
-        [TestCase(new [] {1, 1, 1, 1, 1, 1, 1, 2}, 1, 5, 0, 7)]
-        [TestCase(new [] {1, 3, 1, 1, 1, 1, 1, 2}, 1, 5, 2, 5)]
-        public void TestTryGetRowOfDigits(int[] arr, int searchValue, int countForRow, int expectedStartIndex, int expectedCount)
+        [TestCase(new[] {1, 1, 1, 1, 1}, 1, 5, 0, 5)]
+        [TestCase(new[] {2, 1, 1, 1, 1, 1, 1, 1}, 1, 5, 1, 7)]
+        [TestCase(new[] {1, 2, 1, 1, 1, 1, 1, 1}, 1, 5, 2, 7)]
+        [TestCase(new[] {1, 1, 1, 1, 1, 1, 2, 1}, 1, 5, 7, 7)]
+        [TestCase(new[] {1, 1, 1, 1, 1, 1, 1, 2}, 1, 5, 0, 7)]
+        [TestCase(new[] {1, 3, 1, 1, 1, 1, 1, 2}, 1, 5, 2, 5)]
+        public void TestTryGetRowOfDigits(int[] arr, int searchValue, int countForRow, int expectedStartIndex,
+            int expectedCount)
         {
             var list = InitList(arr);
             Assert.True(list.TryGetRowOfDigits(searchValue, countForRow, out var startIndex, out var count));
-            Assert.True(startIndex == expectedStartIndex, $"startIndex = {startIndex}, expectedStartIndex = {expectedStartIndex}");
+            Assert.True(startIndex == expectedStartIndex,
+                $"startIndex = {startIndex}, expectedStartIndex = {expectedStartIndex}");
             Assert.True(count == expectedCount, $"count = {count}, expectedCount = {expectedCount}");
         }
 
-        [TestCase(new [] {1, 3, 1, 1, 1, 1, 1, 2}, 1, 5, new [] {1,3,10,2})]
-        [TestCase(new [] {1, 1, 1, 2, 2, 1, 1, 1}, 1, 5, new [] {10,2,2})]
+        [TestCase(new[] {1, 3, 1, 1, 1, 1, 1, 2}, 1, 5, new[] {1, 3, 10, 2})]
+        [TestCase(new[] {1, 1, 1, 2, 2, 1, 1, 1}, 1, 5, new[] {10, 2, 2})]
         public void TestScenario(int[] arr, int searchValue, int countForRow, int[] expectedArr)
         {
             var list = InitList(arr);
@@ -53,21 +57,42 @@ namespace Tests
             CheckList(list, expectedArr);
         }
 
+        [TestCase(new[] {1, 2, 3}, 2, 5)]
+        public void TestTryGetRowOfDigitsWhenFalse(int[] arr, int searchValue, int countForRow)
+        {
+            var list = InitList(arr);
+            Assert.False(list.TryGetRowOfDigits(searchValue, countForRow, out var startIndex, out var count));
+        }
+        
+        [TestCase(new[] {1, 2, 3}, -1, 1)]
+        [TestCase(new[] {1, 2, 3}, 1, -1)]
+        [TestCase(new[] {1, 2, 3}, 11, 1)]
+        [TestCase(new[] {1, 2, 3}, 1, 11)]
+        public void TestRemoveAtWhenIncorrectInput(int[] arr, int index, int count)
+        {
+            var list = InitList(arr);
+            Assert.Throws<ArgumentException>(() => list.RemoveAt(index, count));
+        }
+        
+        
+
         private static void CheckList(CircleList list, int[] expected)
         {
             Assert.True(list.Count == expected.Length, "list.Count not equal expected.Length");
             for (var i = 0; i < list.Count; i++)
             {
-                Assert.True(list.InnerList[i] == expected[i], $"list.InnerList[i] = {list.InnerList[i]}, expected[i] = {expected[i]}");
+                Assert.True(list.InnerList[i] == expected[i],
+                    $"list.InnerList[i] = {list.InnerList[i]}, expected[i] = {expected[i]}");
             }
         }
 
-        private static CircleList InitList(int[] arr)
+        private static CircleList InitList(IReadOnlyList<int> arr)
         {
             var list = new CircleList();
-            for (var i = 0; i < arr.Length; i++)
+            for (var i = 0; i < arr.Count; i++)
             {
-                list.AddAt(i, arr[i]);
+                var circle = arr[i];
+                list.AddAt(i, circle);
             }
 
             return list;
