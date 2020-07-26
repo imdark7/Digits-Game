@@ -13,7 +13,6 @@ public class CircleList
     public static Vector3 Center;
     public int Count => InnerList.Count;
     public readonly UnityEvent NeedCheckSumEvent = new UnityEvent();
-    public readonly UnityEvent NeedCheckRowSumEvent = new UnityEvent();
     internal bool IsMoving => InnerList.Any(x => x.IsMoving);
 
     public CircleList()
@@ -160,7 +159,6 @@ public class CircleList
         var insertPosition = first > indexesForRemove.Last() ? 0 : first;
         yield return AddAt(newCircle, insertPosition, false);
         yield return RenderList();
-        NeedCheckRowSumEvent.Invoke();
     }
 
     public void RemoveAt(int index, int count = 1)

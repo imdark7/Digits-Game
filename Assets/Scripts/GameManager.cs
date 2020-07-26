@@ -18,13 +18,11 @@ public class GameManager : MonoBehaviour
     private Vector3 targetNextCircleDirection;
     private readonly UnityEvent playerTurnEvent = new UnityEvent();
     private int insertedIndex;
-    private bool init = true;
 
 
     private void Start()
     {
-        list.NeedCheckSumEvent.AddListener(CollapseSum);
-        list.NeedCheckRowSumEvent.AddListener(CollapseRow);
+        list.NeedCheckSumEvent.AddListener(() => StartCoroutine(CollapseSum()));
         playerTurnEvent.AddListener(() => nextCircle = CreateCircle());
 
         CircleList.Center = transform.position;
@@ -50,8 +48,7 @@ public class GameManager : MonoBehaviour
         }
 
         yield return list.RenderList();
-
-        init = false;
+        playerTurnEvent.Invoke();
     }
 
     private Circle CreateCircle(int digit = default, Vector3 position = default, Quaternion quaternion = default)
@@ -105,7 +102,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void CollapseRow()
+    private IEnumerator CollapseRow()
     {
         if (list.TryGetRowOfDigits(DigitCap, CountForRow, out var startIndex, out var count))
         {
@@ -118,8 +115,10 @@ public class GameManager : MonoBehaviour
             }
 
             list.RemoveAt(startIndex, count);
-            StartCoroutine(list.RenderList());
+            yield return list.RenderList();
         }
+
+        playerTurnEvent.Invoke();
     }
 
     private IEnumerable<int> GetIndexesForDestroy(int startIndex, int count)
@@ -149,7 +148,7 @@ public class GameManager : MonoBehaviour
     }
 
 
-    private void CollapseSum()
+    private IEnumerator CollapseSum()
     {
         var sum = 0;
         var indexList = new List<int>();
@@ -179,14 +178,16 @@ public class GameManager : MonoBehaviour
 
                 if (sum == DigitCap)
                 {
-                    StartCoroutine(Collapse(indexList));
-                    return;
+                    yield return StartCoroutine(Collapse(indexList));
+                    yield break;
                 }
 
                 j++;
                 index = GetNextIndex(index);
             }
         }
+        
+        playerTurnEvent.Invoke();
     }
 
     private IEnumerator Collapse(IEnumerable<int> indexes)
@@ -200,6 +201,7 @@ public class GameManager : MonoBehaviour
 
 
         yield return list.Replace(indexArray, CreateCircle(DigitCap, positionToCreate));
+        yield return CollapseRow();
     }
 
     private int GetNextIndex(int i) => i == list.Count - 1 ? 0 : i + 1;
