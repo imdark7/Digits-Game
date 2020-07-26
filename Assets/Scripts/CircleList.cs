@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -8,12 +9,12 @@ public class CircleList
 {
     public CircleListNode Head;
     public List<Circle> InnerList { get; }
-    public static readonly float Radius = 5.0f;
+    public static readonly float Radius = 6.0f;
     public static Vector3 Center;
     public int Count => InnerList.Count;
     public readonly UnityEvent NeedCheckSumEvent = new UnityEvent();
     public readonly UnityEvent NeedCheckRowSumEvent = new UnityEvent();
-    internal bool IsMoving => InnerList.All(x => x.IsMoving);
+    internal bool IsMoving => InnerList.Any(x => x.IsMoving);
 
     public CircleList()
     {
@@ -38,7 +39,7 @@ public class CircleList
         InnerList.Insert(0, value);
     }
 
-    public void AddAt(Circle value, int index, bool needCheckSum = true)
+    public IEnumerator AddAt(Circle value, int index, bool needCheckSum = true)
     {
         if (index < 0 || index > InnerList.Count)
         {
@@ -67,14 +68,14 @@ public class CircleList
 
         if (needCheckSum)
         {
-            RenderList();
+            yield return RenderList();
             NeedCheckSumEvent.Invoke();
         }
     }
 
     public bool TryGetRowOfDigits(int searchValue, int countForRow, out int startIndex, out int count)
     {
-        if (InnerList.Count(x => x.digit == searchValue) == Count)
+        if (InnerList.Count(x => x.Digit == searchValue) == Count)
         {
             startIndex = 0;
             count = Count;
@@ -83,7 +84,7 @@ public class CircleList
 
         var circle = Head;
         var offset = 0;
-        while (circle.Value.digit == searchValue)
+        while (circle.Value.Digit == searchValue)
         {
             offset++;
             circle = circle.Next;
@@ -94,18 +95,18 @@ public class CircleList
         count = 0;
         for (var i = 0; i < InnerList.Count; i++)
         {
-            if (circle.Value.digit == searchValue && !isRange)
+            if (circle.Value.Digit == searchValue && !isRange)
             {
                 startIndex = (i + offset) % InnerList.Count;
                 isRange = true;
                 count++;
             }
-            else if (circle.Value.digit == searchValue && isRange)
+            else if (circle.Value.Digit == searchValue && isRange)
             {
                 count++;
             }
 
-            if (InnerList[(i + offset) % InnerList.Count].digit != searchValue && isRange
+            if (InnerList[(i + offset) % InnerList.Count].Digit != searchValue && isRange
                 || i == InnerList.Count - 1)
             {
                 if (count >= countForRow)
@@ -126,8 +127,15 @@ public class CircleList
     public CircleListNode FindLast()
     {
         var el = Head;
-        while (el.Next != Head)
+        var count = 0;
+        while (el.Next != Head )
         {
+            if (count > Count)
+            {
+                throw new Exception("Something wrong!");
+            }
+
+            count++;
             el = el.Next;
         }
 
@@ -145,13 +153,13 @@ public class CircleList
         return el;
     }
 
-    public void Replace(int[] indexesForRemove, Circle newCircle)
+    public IEnumerator Replace(int[] indexesForRemove, Circle newCircle)
     {
         var first = indexesForRemove.First();
         RemoveAt(first, indexesForRemove.Length);
         var insertPosition = first > indexesForRemove.Last() ? 0 : first;
-        AddAt(newCircle, insertPosition, false);
-        RenderList();
+        yield return AddAt(newCircle, insertPosition, false);
+        yield return RenderList();
         NeedCheckRowSumEvent.Invoke();
     }
 
@@ -177,19 +185,23 @@ public class CircleList
         }
         else
         {
+            if (index == 0)
+            {
+                Head = count == Count ? null : FindAt(count);
+            }
             InnerList.RemoveRange(index, count);
         }
-
-        RenderList();
     }
 
-    public void RenderList()
+    public IEnumerator RenderList()
     {
         for (var i = 0; i < Count; i++)
         {
             InnerList[i].Move(GetCirclePosition(i, Count));
         }
-        Debug.Log("move end");
+        
+        yield return new WaitUntil(() => !IsMoving);
+        yield return new WaitForSecondsRealtime(0.3f);
     }
 
     private static float GetAngleOfElement(int i, int elementsCount) => i * 360f / elementsCount;

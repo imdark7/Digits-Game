@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.Serialization;
 using Quaternion = UnityEngine.Quaternion;
 using Vector3 = UnityEngine.Vector3;
@@ -15,13 +16,17 @@ public class GameManager : MonoBehaviour
     public static int CountForRow = 5;
     private Circle nextCircle;
     private Vector3 targetNextCircleDirection;
+    private readonly UnityEvent playerTurnEvent = new UnityEvent();
     private int insertedIndex;
+    private bool init = true;
 
 
     private void Start()
     {
         list.NeedCheckSumEvent.AddListener(CollapseSum);
         list.NeedCheckRowSumEvent.AddListener(CollapseRow);
+        playerTurnEvent.AddListener(() => nextCircle = CreateCircle());
+
         CircleList.Center = transform.position;
         StartCoroutine(PlaceStartCircles());
     }
@@ -29,20 +34,30 @@ public class GameManager : MonoBehaviour
     private IEnumerator PlaceStartCircles()
     {
         var startDigits = new[] {6, 6, 6, 5, 6, 7, 8, 9};
-        for (var i = 0; i < StartCount; i++)
+        for (var i = 0; i < StartCount;)
         {
             var circle = CreateCircle(startDigits[i]);
-            list.AddAt(circle, i, false);
+            yield return list.AddAt(circle, i, false);
             var pos = CircleList.GetCirclePosition(i, StartCount);
-            yield return StartCoroutine(circle.MoveCoroutine(pos));
+            circle.Move(pos);
+
+            while (list.IsMoving)
+            {
+                yield return null;
+            }
+
+            i++;
         }
 
-        list.RenderList();
-        nextCircle = CreateCircle();
+        yield return list.RenderList();
+
+        init = false;
     }
 
-    private Circle CreateCircle(int digit = default, Vector3 position = default) =>
-        Instantiate(prefab, position, Quaternion.identity).Init(digit);
+    private Circle CreateCircle(int digit = default, Vector3 position = default, Quaternion quaternion = default)
+    {
+        return Instantiate(prefab, position, Quaternion.identity).Init(digit);
+    }
 
     private void Update()
     {
@@ -65,7 +80,7 @@ public class GameManager : MonoBehaviour
 
             if (Input.GetMouseButtonUp(0))
             {
-                InsertIntoList(nextCircle, targetNextCircleDirection);
+                StartCoroutine(InsertIntoList(nextCircle, targetNextCircleDirection));
                 nextCircle = null;
                 return;
             }
@@ -83,16 +98,10 @@ public class GameManager : MonoBehaviour
                 }
                 else if (touch.phase == TouchPhase.Ended)
                 {
-                    InsertIntoList(nextCircle, targetNextCircleDirection);
+                    StartCoroutine(InsertIntoList(nextCircle, targetNextCircleDirection));
                     nextCircle = null;
-                    return;
                 }
             }
-        }
-
-        if (nextCircle is null)
-        {
-            nextCircle = CreateCircle();
         }
     }
 
@@ -109,6 +118,7 @@ public class GameManager : MonoBehaviour
             }
 
             list.RemoveAt(startIndex, count);
+            StartCoroutine(list.RenderList());
         }
     }
 
@@ -124,7 +134,7 @@ public class GameManager : MonoBehaviour
         return indexes;
     }
 
-    private void InsertIntoList(Circle circle, Vector3 direction)
+    private IEnumerator InsertIntoList(Circle circle, Vector3 direction)
     {
         var sectorAngle = 360f / list.Count;
         var vectorAngle = Vector3.Angle(Vector3.up, direction);
@@ -135,7 +145,7 @@ public class GameManager : MonoBehaviour
 
         var index = (int) (vectorAngle / sectorAngle) + 1;
         insertedIndex = index;
-        list.AddAt(circle, index);
+        yield return list.AddAt(circle, index);
     }
 
 
@@ -149,7 +159,7 @@ public class GameManager : MonoBehaviour
             var j = 0;
             var index = i;
 
-            if (list.InnerList[index].digit == DigitCap)
+            if (list.InnerList[index].Digit == DigitCap)
             {
                 sum = 0;
                 indexList.Clear();
@@ -158,7 +168,7 @@ public class GameManager : MonoBehaviour
 
             while (j < list.Count)
             {
-                sum += list.InnerList[index].digit;
+                sum += list.InnerList[index].Digit;
                 indexList.Add(index);
                 if (sum > DigitCap)
                 {
@@ -169,7 +179,7 @@ public class GameManager : MonoBehaviour
 
                 if (sum == DigitCap)
                 {
-                    Collapse(indexList);
+                    StartCoroutine(Collapse(indexList));
                     return;
                 }
 
@@ -179,7 +189,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void Collapse(IEnumerable<int> indexes)
+    private IEnumerator Collapse(IEnumerable<int> indexes)
     {
         var indexArray = indexes.ToArray();
         var positionToCreate = list.InnerList[insertedIndex].transform.position;
@@ -188,8 +198,8 @@ public class GameManager : MonoBehaviour
             Destroy(list.InnerList[i].gameObject);
         }
 
-        
-        list.Replace(indexArray, CreateCircle(DigitCap, positionToCreate));
+
+        yield return list.Replace(indexArray, CreateCircle(DigitCap, positionToCreate));
     }
 
     private int GetNextIndex(int i) => i == list.Count - 1 ? 0 : i + 1;
