@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -14,19 +15,34 @@ public class GameManager : MonoBehaviour
     public static int DigitCap = 10;
     public static int StartCount = 8;
     public static int CountForRow = 5;
+    private static int expirience = 0;
+    private static int expForLvlUp = 20;
     private Circle nextCircle;
     private Vector3 targetNextCircleDirection;
     private readonly UnityEvent playerTurnEvent = new UnityEvent();
     private int insertedIndex;
 
-
     private void Start()
     {
         list.NeedCheckSumEvent.AddListener(() => StartCoroutine(CollapseSum()));
-        playerTurnEvent.AddListener(() => nextCircle = CreateCircle());
-
+        playerTurnEvent.AddListener(BeforePlayerTurn);
+        
         CircleList.Center = transform.position;
         StartCoroutine(PlaceStartCircles());
+    }
+
+    private void BeforePlayerTurn()
+    {
+        expirience++;
+        Debug.Log($"exp {expirience}");
+        if (expirience == expForLvlUp)
+        {
+            expirience = 0;
+            expForLvlUp = (int) (expForLvlUp * 1.2);
+            DigitCap++;
+            Debug.Log(DigitCap);
+        }
+        nextCircle = CreateCircle();
     }
 
     private IEnumerator PlaceStartCircles()
