@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -12,11 +11,11 @@ public class GameManager : MonoBehaviour
 {
     public Circle prefab;
     [FormerlySerializedAs("intList")] public CircleList list = new CircleList();
-    public static int DigitCap = 10;
+    public static int DigitCap = 8;
     public static int StartCount = 8;
     public static int CountForRow = 5;
     private static int expirience = 0;
-    private static int expForLvlUp = 20;
+    private static int expForLvlUp = 2;
     private Circle nextCircle;
     private Vector3 targetNextCircleDirection;
     private readonly UnityEvent playerTurnEvent = new UnityEvent();
@@ -40,14 +39,13 @@ public class GameManager : MonoBehaviour
             expirience = 0;
             expForLvlUp = (int) (expForLvlUp * 1.2);
             DigitCap++;
-            Debug.Log(DigitCap);
         }
         nextCircle = CreateCircle();
     }
 
     private IEnumerator PlaceStartCircles()
     {
-        var startDigits = new[] {6, 6, 6, 5, 6, 7, 8, 9};
+        var startDigits = new[] {2, 1, 4, 5, 2, 2, 3, 4};
         for (var i = 0; i < StartCount;)
         {
             var circle = CreateCircle(startDigits[i]);

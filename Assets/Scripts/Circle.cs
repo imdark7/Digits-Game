@@ -19,7 +19,7 @@ public class Circle : MonoBehaviour
 
     public Circle Init(int value = default)
     {
-        Digit = value == default ? Random.Range(1, GameManager.DigitCap) : value;
+        Digit = value == default ? Random.Range(1, GameManager.DigitCap - 3) : value;
         GetComponent<SpriteRenderer>().color = colors[Digit - 1];
         GetComponentInChildren<TextMeshPro>().text = Digit.ToString();
         GetComponent<Animation>().Play("CircleInit");
