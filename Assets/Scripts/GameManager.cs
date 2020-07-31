@@ -9,13 +9,15 @@ using Vector3 = UnityEngine.Vector3;
 
 public class GameManager : MonoBehaviour
 {
-    public Circle prefab;
+    [FormerlySerializedAs("prefab")] public Circle circlePrefab;
+    [FormerlySerializedAs("purposePrefab")] public Purpose[] purposePrefabs;
     [FormerlySerializedAs("intList")] public CircleList list = new CircleList();
+    public Queue<Purpose> Purposes = new Queue<Purpose>();
     public static int DigitCap = 8;
     public static int StartCount = 8;
     public static int CountForRow = 5;
     private static int expirience = 0;
-    private static int expForLvlUp = 2;
+    private static int expForLvlUp = 5;
     private Circle nextCircle;
     private Vector3 targetNextCircleDirection;
     private readonly UnityEvent playerTurnEvent = new UnityEvent();
@@ -23,24 +25,35 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
+        for (var i = 0; i < 5; i++)
+        {
+            Purposes.Enqueue(Instantiate(purposePrefabs[i], new Vector3(0,11, i), Quaternion.identity));
+        }
+
         list.NeedCheckSumEvent.AddListener(() => StartCoroutine(CollapseSum()));
-        playerTurnEvent.AddListener(BeforePlayerTurn);
+        playerTurnEvent.AddListener(() => StartCoroutine(BeforePlayerTurn()));
         
         CircleList.Center = transform.position;
         StartCoroutine(PlaceStartCircles());
     }
 
-    private void BeforePlayerTurn()
+    private IEnumerator BeforePlayerTurn()
     {
         expirience++;
-        Debug.Log($"exp {expirience}");
         if (expirience == expForLvlUp)
         {
-            expirience = 0;
-            expForLvlUp = (int) (expForLvlUp * 1.2);
-            DigitCap++;
+            yield return LvlUp();
         }
         nextCircle = CreateCircle();
+    }
+
+    private IEnumerator LvlUp()
+    {
+        expirience = 0;
+        expForLvlUp = (int) (expForLvlUp * 1.2);
+        DigitCap++;
+        Purposes.Dequeue().dissolveEvent.Invoke();
+        yield return new WaitForSecondsRealtime(2f);
     }
 
     private IEnumerator PlaceStartCircles()
@@ -65,9 +78,9 @@ public class GameManager : MonoBehaviour
         playerTurnEvent.Invoke();
     }
 
-    private Circle CreateCircle(int digit = default, Vector3 position = default, Quaternion quaternion = default)
+    private Circle CreateCircle(int digit = default, Vector3 position = default)
     {
-        return Instantiate(prefab, position, Quaternion.identity).Init(digit);
+        return Instantiate(circlePrefab, position, Quaternion.identity).Init(digit);
     }
 
     private void Update()

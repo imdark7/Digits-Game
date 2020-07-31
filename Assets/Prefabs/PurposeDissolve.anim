@@ -23,6 +23,34 @@ AnimationClip:
       - serializedVersion: 3
         time: 0
         value: -0.15
+        inSlope: 0.55622476
+        outSlope: 0.55622476
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.29407293
+      - serializedVersion: 3
+        time: 2
+        value: 1
+        inSlope: 1.0924146
+        outSlope: 1.0924146
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.23830295
+        outWeight: 0.33333334
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: material.Vector1_C3E0CE87
+    path: 
+    classID: 212
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 24
         inSlope: 0
         outSlope: 0
         tangentMode: 136
@@ -31,7 +59,7 @@ AnimationClip:
         outWeight: 0.33333334
       - serializedVersion: 3
         time: 2
-        value: 1
+        value: 20
         inSlope: 0
         outSlope: 0
         tangentMode: 136
@@ -41,10 +69,10 @@ AnimationClip:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    attribute: DissolveState
+    attribute: material.Vector1_E1C1C368
     path: 
-    classID: 114
-    script: {fileID: 11500000, guid: b143b89036b25eb408015cf9c3ae9329, type: 3}
+    classID: 212
+    script: {fileID: 0}
   m_PPtrCurves: []
   m_SampleRate: 60
   m_WrapMode: 0
@@ -55,10 +83,17 @@ AnimationClip:
     genericBindings:
     - serializedVersion: 2
       path: 0
-      attribute: 3395972052
-      script: {fileID: 11500000, guid: b143b89036b25eb408015cf9c3ae9329, type: 3}
-      typeID: 114
-      customType: 0
+      attribute: 2325096995
+      script: {fileID: 0}
+      typeID: 212
+      customType: 22
+      isPPtrCurve: 0
+    - serializedVersion: 2
+      path: 0
+      attribute: 2384452829
+      script: {fileID: 0}
+      typeID: 212
+      customType: 22
       isPPtrCurve: 0
     pptrCurveMapping: []
   m_AnimationClipSettings:
@@ -88,6 +123,34 @@ AnimationClip:
       - serializedVersion: 3
         time: 0
         value: -0.15
+        inSlope: 0.55622476
+        outSlope: 0.55622476
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.29407293
+      - serializedVersion: 3
+        time: 2
+        value: 1
+        inSlope: 1.0924146
+        outSlope: 1.0924146
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.23830295
+        outWeight: 0.33333334
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: material.Vector1_C3E0CE87
+    path: 
+    classID: 212
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 24
         inSlope: 0
         outSlope: 0
         tangentMode: 136
@@ -96,7 +159,7 @@ AnimationClip:
         outWeight: 0.33333334
       - serializedVersion: 3
         time: 2
-        value: 1
+        value: 20
         inSlope: 0
         outSlope: 0
         tangentMode: 136
@@ -106,10 +169,10 @@ AnimationClip:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    attribute: DissolveState
+    attribute: material.Vector1_E1C1C368
     path: 
-    classID: 114
-    script: {fileID: 11500000, guid: b143b89036b25eb408015cf9c3ae9329, type: 3}
+    classID: 212
+    script: {fileID: 0}
   m_EulerEditorCurves: []
   m_HasGenericRootTransform: 0
   m_HasMotionFloatCurves: 0
