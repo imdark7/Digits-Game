@@ -1,4 +1,3 @@
-using System;
 using TMPro;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -6,24 +5,26 @@ using Random = UnityEngine.Random;
 public class Circle : MonoBehaviour
 {
     internal int Digit;
-    internal Vector3 TargetPosition = new Vector3(0, 0, 1);
-    internal bool IsMoving => transform.position != TargetPosition;
+    private Vector3 targetPosition = new Vector3(0, 0, 1);
+    internal bool IsMoving => transform.position != targetPosition;
     public Color[] colors = new Color[16];
 
     private void Update()
     {
-        transform.position = Vector3.MoveTowards(transform.position, TargetPosition, 20f * Time.deltaTime);
+        transform.position = Vector3.MoveTowards(transform.position, targetPosition, 20f * Time.deltaTime);
     }
 
-    public void Move(Vector3 position) => TargetPosition = position;
+    public void Move(Vector2 position) => targetPosition = position;
 
     public Circle Init(int value = default)
     {
-        Digit = value == default ? Random.Range(1, GameManager.DigitCap - 3) : value;
+        Digit = value == default 
+            ? Random.Range(1, GameManager.DigitCap - (int)(GameManager.DigitCap * 0.2)) 
+            : value;
         GetComponent<SpriteRenderer>().color = colors[Digit - 1];
         GetComponentInChildren<TextMeshPro>().text = Digit.ToString();
         GetComponent<Animation>().Play("CircleInit");
-        TargetPosition = transform.position;
+        targetPosition = transform.position;
         return this;
     }
 }

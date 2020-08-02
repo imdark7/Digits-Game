@@ -214,6 +214,11 @@ public class CircleList
         pos.z = Center.z;
         return pos;
     }
+
+    public IEnumerator ChangeValue(int index, int newValue)
+    {
+        yield return Replace(new []{index},FindAt(index).Value.Init(newValue));
+    }
 }
 
 public class CircleListNode

@@ -10,55 +10,116 @@ using Vector3 = UnityEngine.Vector3;
 public class GameManager : MonoBehaviour
 {
     [FormerlySerializedAs("prefab")] public Circle circlePrefab;
-    [FormerlySerializedAs("purposePrefab")] public Purpose[] purposePrefabs;
+    [FormerlySerializedAs("sliderPrefab")] public SliderBar sliderBarPrefab;
+
+    [FormerlySerializedAs("purposePrefab")]
+    public Purpose[] purposePrefabs;
+
     [FormerlySerializedAs("intList")] public CircleList list = new CircleList();
-    public Queue<Purpose> Purposes = new Queue<Purpose>();
+    [FormerlySerializedAs("Purposes")] public Queue<Purpose> purposes = new Queue<Purpose>();
+    public ParticleSystem lvlUpEffect;
     public static int DigitCap = 8;
     public static int StartCount = 8;
     public static int CountForRow = 5;
-    private static int expirience = 0;
     private static int expForLvlUp = 5;
+    private static int countForDeath = 10;
     private Circle nextCircle;
     private Vector3 targetNextCircleDirection;
     private readonly UnityEvent playerTurnEvent = new UnityEvent();
-    private int insertedIndex;
+    private SliderBar experience;
+    private SliderBar death;
+
+    private bool firstTurn = true;
 
     private void Start()
     {
+        var canvas = transform.Find("Canvas");
+        var canvasPosition = canvas.position;
+        experience =
+            Instantiate(sliderBarPrefab, canvas)
+                .Init(new Vector3(-450 + canvasPosition.x, 635 + canvasPosition.y),
+                    new Color(0.4157809f, 0.735849f, 0.2742079f),
+                    expForLvlUp);
+        death =
+            Instantiate(sliderBarPrefab, canvas)
+                .Init(new Vector3(450 + canvasPosition.x, 635 + canvasPosition.y),
+                    new Color(0.764151f, 0.025849f, 0.04650033f),
+                    countForDeath);
+
+        lvlUpEffect = transform.Find("LvlUpEffect").GetComponent<ParticleSystem>();
+
         for (var i = 0; i < 5; i++)
         {
-            Purposes.Enqueue(Instantiate(purposePrefabs[i], new Vector3(0,11, i), Quaternion.identity));
+            purposes.Enqueue(Instantiate(purposePrefabs[i], new Vector3(0, 11, i + 20), Quaternion.identity));
         }
 
-        list.NeedCheckSumEvent.AddListener(() => StartCoroutine(CollapseSum()));
+        list.NeedCheckSumEvent.AddListener(() => StartCoroutine(NeedCheckSumEventHandler()));
         playerTurnEvent.AddListener(() => StartCoroutine(BeforePlayerTurn()));
-        
+
         CircleList.Center = transform.position;
         StartCoroutine(PlaceStartCircles());
     }
 
+    private IEnumerator NeedCheckSumEventHandler()
+    {
+        yield return CollapseSum();
+        playerTurnEvent.Invoke();
+    }
+
     private IEnumerator BeforePlayerTurn()
     {
-        expirience++;
-        if (expirience == expForLvlUp)
+        if (firstTurn)
+        {
+            firstTurn = false;
+        }
+        else
+        {
+            experience.Increase();
+            yield return new WaitForSecondsRealtime(0.2f);
+        }
+
+        if (experience.Value == expForLvlUp)
         {
             yield return LvlUp();
+        }
+
+        yield return death.SetValue(list.Count);
+        if (death.Value >= countForDeath)
+        {
+            yield return Death();
+            yield break;
         }
         nextCircle = CreateCircle();
     }
 
+    private IEnumerator Death()
+    {
+        yield return null;
+    }
+
     private IEnumerator LvlUp()
     {
-        expirience = 0;
+        lvlUpEffect.Play();
+        yield return experience.SetValue(0);
         expForLvlUp = (int) (expForLvlUp * 1.2);
+        experience.SetMaxValue(expForLvlUp);
+        purposes.Dequeue().dissolveEvent.Invoke();
+        for (var i = 0; i < list.Count; i++)
+        {
+            if (list.InnerList[i].Digit == DigitCap)
+            {
+                yield return list.ChangeValue(i, DigitCap / 2);
+            }
+        }
+
         DigitCap++;
-        Purposes.Dequeue().dissolveEvent.Invoke();
-        yield return new WaitForSecondsRealtime(2f);
+        yield return new WaitForSecondsRealtime(1.3f);
+        yield return CollapseSum();
     }
 
     private IEnumerator PlaceStartCircles()
     {
-        var startDigits = new[] {2, 1, 4, 5, 2, 2, 3, 4};
+        var startDigits = new[] {2, 1, 2, 2, 2, 2, 4, 4};
         for (var i = 0; i < StartCount;)
         {
             var circle = CreateCircle(startDigits[i]);
@@ -71,6 +132,7 @@ public class GameManager : MonoBehaviour
                 yield return null;
             }
 
+            death.Increase();
             i++;
         }
 
@@ -96,7 +158,7 @@ public class GameManager : MonoBehaviour
             {
                 var mousePosition = Input.mousePosition;
                 targetNextCircleDirection = 2f * Camera.main
-                    .ScreenToWorldPoint(new Vector3(mousePosition.x, mousePosition.y, 1))
+                    .ScreenToWorldPoint(new Vector3(mousePosition.x, mousePosition.y, 0))
                     .normalized;
 
                 nextCircle.Move(targetNextCircleDirection);
@@ -116,7 +178,7 @@ public class GameManager : MonoBehaviour
                 {
                     targetNextCircleDirection = 2f * Camera.main
                         .ScreenToWorldPoint(new Vector3(touch.position.x, touch.position.y,
-                            1))
+                            0))
                         .normalized;
                     nextCircle.Move(targetNextCircleDirection);
                 }
@@ -144,8 +206,6 @@ public class GameManager : MonoBehaviour
             list.RemoveAt(startIndex, count);
             yield return list.RenderList();
         }
-
-        playerTurnEvent.Invoke();
     }
 
     private IEnumerable<int> GetIndexesForDestroy(int startIndex, int count)
@@ -160,67 +220,76 @@ public class GameManager : MonoBehaviour
         return indexes;
     }
 
-    private IEnumerator InsertIntoList(Circle circle, Vector3 direction)
+    private IEnumerator InsertIntoList(Circle circle, Vector2 direction)
     {
         var sectorAngle = 360f / list.Count;
-        var vectorAngle = Vector3.Angle(Vector3.up, direction);
+        var vectorAngle = Vector2.Angle(Vector2.up, direction);
         if (direction.x < 0)
         {
             vectorAngle = 360f - vectorAngle;
         }
 
         var index = (int) (vectorAngle / sectorAngle) + 1;
-        insertedIndex = index;
         yield return list.AddAt(circle, index);
     }
 
 
     private IEnumerator CollapseSum()
     {
-        var sum = 0;
-        var indexList = new List<int>();
-
-        for (var i = 0; i < list.Count; i++)
+        var finished = false;
+        while (!finished)
         {
-            var j = 0;
-            var index = i;
+            yield return CollapseSumOnce();
+        }
 
-            if (list.InnerList[index].Digit == DigitCap)
-            {
-                sum = 0;
-                indexList.Clear();
-                continue;
-            }
+        yield return CollapseRow();
 
-            while (j < list.Count)
+        IEnumerator CollapseSumOnce()
+        {
+            var sum = 0;
+            var indexList = new List<int>();
+            for (var i = 0; i < list.Count; i++)
             {
-                sum += list.InnerList[index].Digit;
-                indexList.Add(index);
-                if (sum > DigitCap)
+                var j = 0;
+                var index = i;
+
+                if (list.InnerList[index].Digit == DigitCap)
                 {
                     sum = 0;
                     indexList.Clear();
-                    break;
+                    continue;
                 }
 
-                if (sum == DigitCap)
+                while (j < list.Count)
                 {
-                    yield return StartCoroutine(Collapse(indexList));
-                    yield break;
-                }
+                    sum += list.InnerList[index].Digit;
+                    indexList.Add(index);
+                    if (sum > DigitCap)
+                    {
+                        sum = 0;
+                        indexList.Clear();
+                        break;
+                    }
 
-                j++;
-                index = GetNextIndex(index);
+                    if (sum == DigitCap)
+                    {
+                        yield return StartCoroutine(Collapse(indexList));
+                        yield break;
+                    }
+
+                    j++;
+                    index = GetNextIndex(index);
+                }
             }
+
+            finished = true;
         }
-        
-        playerTurnEvent.Invoke();
     }
 
     private IEnumerator Collapse(IEnumerable<int> indexes)
     {
         var indexArray = indexes.ToArray();
-        var positionToCreate = list.InnerList[insertedIndex].transform.position;
+        var positionToCreate = list.InnerList[indexArray[indexArray.Length / 2]].transform.position;
         foreach (var i in indexArray.OrderByDescending(i => i))
         {
             Destroy(list.InnerList[i].gameObject);
@@ -228,7 +297,6 @@ public class GameManager : MonoBehaviour
 
 
         yield return list.Replace(indexArray, CreateCircle(DigitCap, positionToCreate));
-        yield return CollapseRow();
     }
 
     private int GetNextIndex(int i) => i == list.Count - 1 ? 0 : i + 1;
